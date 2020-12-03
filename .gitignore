@@ -1,0 +1,15 @@
+# Generated files
+*.log
+*.aux
+*.toc
+*.pdf
+*.out
+
+*.bbl
+*.blg
+
+*.xml
+
+# virtual environment
+venv/
+

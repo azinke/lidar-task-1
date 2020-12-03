@@ -1,0 +1,116 @@
+\documentclass{scrartcl}
+\usepackage{rwukoma}
+\usepackage[pdfusetitle]{hyperref}
+\usepackage{caption}
+\usepackage[backend=bibtex, style=numeric]{biblatex}
+\addbibresource{bibliography.bib}
+
+\title{LiDaR data recorded by a Velodyne VLP-16}
+\author{AMOUSSOU Zinsou Kenneth}
+\date{\today}
+
+\begin{document}
+	\maketitle
+	\tableofcontents
+
+	\clearpage
+  
+  \section{Introduction}
+
+  Astyx Hires dataset \cite{astyx} is composed of 546 entries of measurements
+  recorded with three sensors (camera, lidar and radar sensors). Each entry of
+  the dataset contains samples of recording from the sensors at different
+  timestamp.
+
+  On the "Ego" vehicle, each sensor is mounted at a different position
+  defining the center of its coordinate system.
+  In order to provide a common base of analysis and interpretation of the
+  dataset, each entry is associated to its calibration information
+  (mainly transformation matrices). Thus, the measurements can transformed into
+  different coordinate systems for analysis.
+
+  As the main goal of the dataset is to be used for object detection
+  \cite{astyx}, it also contains labeled objects (cars in its current
+  iteration) designated by the term "Ground truth". The ground truth of each
+  entry of the dataset contains details such as: label class name, oclusion,
+  dimensions, orientation, etc \cite{astyx-spec}.
+
+  Our goal in this report is to investigate how lidar sensors work by focusing
+  on the case of Velodyne VLP-16. In a first step, a simplified model of a car
+  is defined and estimations of lidar points coverage on the model are
+  performed in different scenarios. Then a validation of our model has been  
+  performed by checking the gap between estimations and real-life data from the
+  astyx dataset.
+
+  \section{LiDaR coverage estimation}
+    \subsection{Simplified model of a car}
+
+    Let's model a car as a 3D box. As simple that model can be, the first level
+    of difficulty is to define the dimensions of that box. No all cars have the
+    same dimensions. Even from the same manufacturer, different car designs
+    can be found.
+    Table \ref{table:car-sizes} show an overview of the diversity of car
+    dimensions based on the car's type.
+
+    \begin{table}[!htbp]
+      \centering
+      \begin{tabular}{ | c | c | c | c |}
+        \hline
+        \textbf{Type} & \textbf{Length (cm)} & \textbf{Width (cm)} & 
+        \textbf{Height (cm)}  \\
+        \hline \hline
+        City cars & 269.5 - 366.5 & 147.5 - 166.5 & 146 - 161 \\
+        \hline
+        Superminis & 382.1 - 408.4 & 166.5 - 178 & 141.4 - 157.8 \\
+        \hline
+        Hatchbacks & 442.5 - 472.6 & 170.3 - 187.1 & 141.8 - 157.5 \\
+        \hline
+        Large cars & 423.6 - 496.6 & 169.3 - 189.5 & 142.9 - 155 \\
+        \hline
+        MPVs & 406.8 - 513 & 169.5 - 192.8 & 153 - 186 \\
+        \hline
+        SUVs & 466.2 - 513 & 176 - 200.8 & 162.4 - 203.5 \\
+        \hline
+      \end{tabular}
+      \caption{Average car sizes \cite{car-sizes}}
+      \label{table:car-sizes}
+    \end{table}
+
+    By computing the arithmetic average of each dimension in table
+    \ref{table:car-sizes} as defined by equation x, we can settle the
+    dimensions of the simplified model of the car as:
+
+    \begin{equation}
+      \centering
+      D = \frac{1}{N} \sum_{n=1}^{N}{\frac{d_n(min) + d_n(max)}{2}}
+      \label{equation:average-size}
+    \end{equation}
+
+    With $D$ the dimension, $N$ the total number of entries in the table -
+    Here $N = 6$. $d_n(min)$ and $d_n(max)$ are respectively the minimal and
+    maximal value of each entry of the table.
+
+    The model of 3D box have the following dimensions as defined by
+    \ref{equation:3d-model-dimensions}.
+
+    \begin{equation}
+      \centering
+      length = 100 cm, 
+      width = 100 cm, 
+      height = 100 cm
+      \label{equation:3d-model-dimensions}
+    \end{equation}
+
+    \subsection{Model positionning}
+
+    Let's assume that the 3D model of the car considered is referenced in
+    the same coordinate frame as the lidar sensor; and let's consider the
+    sensor as the origin of the coordinate system. With those two hypothesis,
+    it's important to define the transformation matrix that would allow
+    achieving rotation of the model and its translation (moving away from the
+    sensor).
+
+  \section{Reduced model of a vehicule}
+
+  \printbibliography
+\end{document}

@@ -2,8 +2,18 @@
 \usepackage{rwukoma}
 \usepackage[pdfusetitle]{hyperref}
 \usepackage{caption}
+\usepackage{amsmath}
+\usepackage{import}
+\usepackage{makecell}
 \usepackage[backend=bibtex, style=numeric]{biblatex}
 \addbibresource{bibliography.bib}
+
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+
+\newcommand{\fig}[3][100]{
+  \def\svgwidth{#1mm}
+  \import{#2/}{#3.pdf_tex}
+}
 
 \title{LiDaR data recorded by a Velodyne VLP-16}
 \author{AMOUSSOU Zinsou Kenneth}
@@ -17,17 +27,17 @@
   
   \section{Introduction}
 
-  Astyx Hires dataset \cite{astyx} is composed of 546 entries of measurements
-  recorded with three sensors (camera, lidar and radar sensors). Each entry of
-  the dataset contains samples of recording from the sensors at different
-  timestamp.
+  The Astyx Hires dataset \cite{astyx} is composed of 546 entries of
+  measurements recorded with three sensors (camera, lidar and radar sensors).
+  Each entry of the dataset contains samples of recording from the sensors at
+  different timestamps.
 
   On the "Ego" vehicle, each sensor is mounted at a different position
   defining the center of its coordinate system.
   In order to provide a common base of analysis and interpretation of the
   dataset, each entry is associated to its calibration information
-  (mainly transformation matrices). Thus, the measurements can transformed into
-  different coordinate systems for analysis.
+  (mainly transformation matrices). Thus, the measurements can be transformed
+  into different coordinate systems for analysis.
 
   As the main goal of the dataset is to be used for object detection
   \cite{astyx}, it also contains labeled objects (cars in its current
@@ -50,10 +60,11 @@
     same dimensions. Even from the same manufacturer, different car designs
     can be found.
     Table \ref{table:car-sizes} show an overview of the diversity of car
-    dimensions based on the car's type.
+    dimensions based on some sample of car types.
 
     \begin{table}[!htbp]
       \centering
+      \caption{Average car sizes \cite{car-sizes}}
       \begin{tabular}{ | c | c | c | c |}
         \hline
         \textbf{Type} & \textbf{Length (cm)} & \textbf{Width (cm)} & 
@@ -72,13 +83,13 @@
         SUVs & 466.2 - 513 & 176 - 200.8 & 162.4 - 203.5 \\
         \hline
       \end{tabular}
-      \caption{Average car sizes \cite{car-sizes}}
       \label{table:car-sizes}
     \end{table}
 
     By computing the arithmetic average of each dimension in table
-    \ref{table:car-sizes} as defined by equation x, we can settle the
-    dimensions of the simplified model of the car as:
+    \ref{table:car-sizes} as defined by equation \ref{equation:average-size},
+    we can settle on the dimensions of the simplified model of the car as:
+    $length = 439.1 cm$, $width = 176.2 cm$, and $height = 159 cm$.
 
     \begin{equation}
       \centering
@@ -90,27 +101,326 @@
     Here $N = 6$. $d_n(min)$ and $d_n(max)$ are respectively the minimal and
     maximal value of each entry of the table.
 
-    The model of 3D box have the following dimensions as defined by
-    \ref{equation:3d-model-dimensions}.
+    \subsection{Reference coordinate frame \& Transformations}
+
+    For estimating the lidar pointcloud coverage of the model that have been
+    defined for the car, it's important to define the reference coordinate
+    frame. Such a coordinate frame allow us to perform the rotation and
+    translation of the car's 3D model.
+
+    The lidar sensor has been considered as the center of the coordinate
+    system. The x-axis of that coordinate frame is considered orthogonal to
+    the back of the car's 3D model; and it passes through the center of the
+    car's 3D model. The y-axis is oriented towards the left and the z-axis
+    heads upwards.
+
+    Figure \ref{figure:coordinate-frame} present the coordinate system that
+    has been considered.
+
+    \begin{figure}[h]
+      \centering
+      \fig{pictures/coordinate-frame}{coordinate-frame}
+      \caption{Coordinate frame of the sensor}
+      \label{figure:coordinate-frame}
+    \end{figure}
+
+    \subsubsection{Locating the car in the reference coordinate frame}
+
+    Based on the dimensions of the car's 3D model, it's possible to know
+    precisely the coordinates of each corner of that box considering the
+    center $O$ of the box to be at $(0, 0, 0)$. Figure \ref{figure:car-model}
+    present the positions of the corners.
+
+    \begin{figure}[h]
+      \centering
+      \fig[75]{pictures/car-model}{car-model}
+      \caption{Representation of the car's model and annotation of corners}
+      \label{figure:car-model}
+    \end{figure}
+
+    Thus, equation \ref{equation:corners-coordinates} establishes the
+    coordinates of the corners of the car's 3D model.
 
     \begin{equation}
       \centering
-      length = 100 cm, 
-      width = 100 cm, 
-      height = 100 cm
-      \label{equation:3d-model-dimensions}
+      \begin{aligned}
+        c_1 &= 
+        \begin{bmatrix}
+          \frac{length}{2} & \frac{width}{2} & \frac{height}{2}
+        \end{bmatrix} \\
+        c_2 &= 
+        \begin{bmatrix}
+          \frac{length}{2} & -\frac{width}{2} & \frac{height}{2}
+        \end{bmatrix} \\
+        c_3 &= 
+        \begin{bmatrix}
+          -\frac{length}{2} & -\frac{width}{2} & \frac{height}{2}
+        \end{bmatrix} \\
+        c_4 &= 
+        \begin{bmatrix}
+          -\frac{length}{2} & \frac{width}{2} & \frac{height}{2}
+        \end{bmatrix} \\
+        c_5 &= 
+        \begin{bmatrix}
+          \frac{length}{2} & \frac{width}{2} & -\frac{height}{2}
+        \end{bmatrix} \\
+        c_6 &= 
+        \begin{bmatrix}
+          \frac{length}{2} & -\frac{width}{2} & -\frac{height}{2}
+        \end{bmatrix} \\
+        c_7 &= 
+        \begin{bmatrix}
+          -\frac{length}{2} & -\frac{width}{2} & -\frac{height}{2}
+        \end{bmatrix} \\
+        c_8 &= 
+        \begin{bmatrix}
+          -\frac{length}{2} & \frac{width}{2} & -\frac{height}{2}
+        \end{bmatrix}
+      \end{aligned}
+      \label{equation:corners-coordinates}
     \end{equation}
 
-    \subsection{Model positionning}
+    \subsubsection{Rotation matrix}
 
-    Let's assume that the 3D model of the car considered is referenced in
-    the same coordinate frame as the lidar sensor; and let's consider the
-    sensor as the origin of the coordinate system. With those two hypothesis,
-    it's important to define the transformation matrix that would allow
-    achieving rotation of the model and its translation (moving away from the
-    sensor).
+    In order to estimate the number of lidar point on the car's model at
+    different positions and different orientations, it's important to define
+    the transformation matrices that would allow us to achieve such operations.
 
-  \section{Reduced model of a vehicule}
+    We are only interested in the rotation of the car's 3D model around the
+    z-axis. Thus, the rotation matrix defined by equation 
+    \ref{equation:rotation-matrix} can be used. With $\psi$ the rotation angle
+    around the z-axis.
+
+    \begin{equation}
+      \centering
+      R_{\psi} =
+        \begin{bmatrix}
+          cos(\psi) & -sin(\psi) & 0 \\
+          sin(\psi) & cos(\psi) & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \label{equation:rotation-matrix}
+    \end{equation}
+
+    \subsubsection{Translation vector}
+
+    Based on figures \ref{figure:coordinate-frame} and \ref{figure:car-model},
+    the simplest way to move the car's 3D model to a certain
+    distance from the lidar sensor it to translate it along the x-axis. That
+    translation operation is achieved by the vector $T$ defined by equation
+    \ref{equation:translation-vector}.
+
+    \begin{equation}
+      \centering
+      T =
+      \begin{bmatrix}
+        d_x & 0 & 0
+      \end{bmatrix}
+      \label{equation:translation-vector}
+    \end{equation}
+
+    With $d_x$ the expected distance between the car and the sensor.
+
+  \subsection{Lidar point coverage estimation}
+
+  \subsubsection{Method}
+
+  For each position and orientation of the 3D model of the car, the initial
+  model has been rotated and/or translated to have the appropriate setup.
+  From figure \ref{figure:car-views}, we can see that the lidar sensor
+  is not able to cover the whole model.
+  Only the side of the car directly facing the sensor can be covered.
+  The section of the car visible to the sensor has been called
+  \textit{sensor view}.
+
+  \begin{figure}[h]
+    \centering
+    \fig[160]{pictures/car-views}{car-views}
+    \caption{Multiple angle views of the car}
+    \label{figure:car-views}
+  \end{figure}
+
+  The sensor view has a rectangular form. Based on figure
+  \ref{figure:sensor-view}, we can estimate
+  the angle of sight that the lidar sensor has on the \textit{sensor view}.
+  So the angles $\alpha$ and $\beta$ (see figure \ref{figure:sensor-view})
+  can be defined as in equation \ref{equation:lidar-view-angles}.
+
+  \begin{figure}[h]
+    \centering
+    \fig[120]{pictures/sensor-view}{sensor-view}
+    \caption{Sensor horizontal and vertical view of the car}
+    \label{figure:sensor-view}
+  \end{figure}
+
+  \begin{equation}
+    \centering
+    \begin{aligned}
+      tan\left( \frac{\alpha}{2} \right) = \frac{\frac{h}{2}}{d} \\
+      \\
+      tan\left( \frac{\beta}{2} \right) = \frac{\frac{w}{2}}{d}
+    \end{aligned}
+    \label{equation:lidar-view-angles}
+  \end{equation}
+
+  Considering the horizontal and vertical view of the lidar sensor as
+  defined by constructors (from datasheets), the angles of sight of the
+  lidar sensor can be written as defined in equation
+  \ref{equation:lidar-nonlinear-view-angles}.
+
+  \begin{equation}
+    \centering
+    \begin{aligned}
+      \alpha =  min \left( 2 * atan2(h, 2d), V_{view} \right) \\
+      \beta = min \left( 2 * atan2(w, 2d), H_{view} \right)
+    \end{aligned}
+    \label{equation:lidar-nonlinear-view-angles}
+  \end{equation}
+
+  With $V_{view}$ and $H_{view}$ respectively the vertical and horizontal view
+  of the lidar sensor. For the Velodyne-16 $V_{view} = 30^{\circ}$ and
+  $H_{view} = 360^{\circ}$.
+
+  The estimation of the number of lidar points on the model of the car is then
+  given by equation \ref{equation:lidar-point-estimation}.
+
+  \begin{equation}
+    \centering
+    Estimation = \floor{\frac{\alpha}{v_{res}}} * \floor{\frac{\beta}{h_{res}}}
+    \label{equation:lidar-point-estimation}
+  \end{equation}
+
+  With $v_{res}$ and $h_{res}$ respectively, the vertical and horizontal
+  resolutions of the lidar sensor. For the Velodyne-16 $v_{res} = 2^{\circ}$
+  and $h_{res} = 0.1^{\circ} - 0.4^{\circ}$. For simulations,
+  $h_{res} = 0.2^{\circ}$ has been used as in the Astyx dataset.
+
+
+  \subsubsection{Results}
+
+  The method described has been implemented in python to achieve automation.
+  The table \ref{table:3D-mode-lidar-coverage} presents the results of the simulation.
+
+  \begin{table}[!htbp]
+    \centering
+    \caption{Lidar points coverage of the car's 3D model}
+    \begin{tabular}{ | c | c | c |}
+      \hline
+      \textbf{Distance (m)} & \textbf{Angle (deg)} & \textbf{Lidar points} \\
+      \hline \hline
+      5 & 0 & 693 \\
+      \hline
+      5 & 45 & 1645 \\
+      \hline
+      5 & 90 & 1659 \\
+      \hline
+      10 & 0 & 200 \\
+      \hline
+      10 & 45 & 488 \\
+      \hline
+      10 & 90 & 492 \\
+      \hline
+      15 & 0 & 99 \\
+      \hline
+      15 & 45 & 246 \\
+      \hline
+      15 & 90 & 249 \\
+      \hline
+      20 & 0 & 50 \\
+      \hline
+      20 & 45 & 124 \\
+      \hline
+      20 & 90 & 124 \\
+      \hline
+    \end{tabular}
+    \label{table:3D-mode-lidar-coverage}
+  \end{table}
+
+  \section{Estimation from Astyx dataset}
+
+  The size of the astyx dataset is not huge, yet it's not that easy to find
+  a data entry from the ground truth matching specific criteria. So, a user
+  friendly API has been written to interact with the Astyx dataset.
+  The source code has been heavily documented to breakdown the steps of
+  processing the entries of the dataset.
+
+  A command line interface has also been added to the API in order to be able
+  to find specific entries maching certain criteria. The results of the search
+  automatically present the relevant information needed on the ground truth
+  such as: number of lidar points, number of radar points, angle, distance from
+  the ego vehicle, etc.
+
+  Based on the result obtained from the API developed, table
+  \ref{table:astyx-lidar-data} presents the selected data that match the
+  criteria of position and angle defined.
+
+  \begin{table}[!htbp]
+    \centering
+    \caption{Lidar points coverage of car from Astyx dataset}
+    \begin{tabular}{ | c | c | c | c | c | c |}
+      \hline
+      \textbf{Dataset entry} & \textbf{ID} & 
+      \makecell{\textbf{Dimensions (m)} \\ Length x Width x Height} &
+      \textbf{Distance (m)} & \textbf{Angle (deg)} & \textbf{Lidar points} \\
+      \hline \hline
+      94 & 0 & 4.000 x 1.800 x 1.550 & 4.736 & 1.263 & 910 \\
+      117 & 4 & 6.550 x 2.050 x 2.480 & 4.298 & 1.296 & 5796 \\
+      127 & 4 & 4.556 x 1.969 x 1.972 & 4.454 & 0.031 & 2410 \\
+      \hline
+      \hline
+      118 & 2 & 5.054 x 2.000 x 1.980 & 10.463 & 1.002 & 431 \\
+      119 & 1 & 5.043 x 1.894 x 1.896 & 10.406 & 0.804 & 397 \\
+      121 & 0 & 5.099 x 1.800 x 1.966 & 10.364 & 0.676 & 426 \\
+      \hline
+      \hline
+      95 & 1 & 3.588 x 1.672 x 1.500 & 15.229 & 0.433 & 82 \\
+      295 & 0 & 4.081 x 1.813 x 1.500 & 15.656 & 0.235 & 68 \\
+      519 & 2 & 4.734 x 1.895 x 2.443 & 15.167 & 0.203 & 167 \\
+      \hline
+      \hline
+      58 & 2 & 3.578 x 1.709 x 1.537 & 19.380 & 1.405 & 33 \\
+      108 & 8 & 4.490 x 1.830 x 1.620 & 20.218 & 1.765 & 39 \\
+      116 & 0 & 4.130 x 1.668 x 1.459 & 20.893 & 0.106 & 25 \\
+      117 & 0 & 3.794 x 1.698 x 1.399 & 20.255 & 0.106 & 14 \\
+      \hline
+    \end{tabular}
+    \label{table:astyx-lidar-data}
+  \end{table}
+
+  \section{Conclusion}
+
+  The model of a car as a 3D box is obviously too much simplistic. However
+  it provides some insight on how a lidar sensor collect data about an object.
+  A comparaison of the data obtained from the simulation (table
+  \ref{table:3D-mode-lidar-coverage}) and the real data from the astyx dataset
+  (table \ref{table:astyx-lidar-data}) leads to the remark that the lidar point
+  estimation on the 3D model of a car is:
+
+  \begin{itemize}
+    \item underestimated for distance of $5m$ and $10m$.
+
+    \item overestimated for distance of $15m$ and $20m$.
+  \end{itemize}
+
+  The reason for these two situations are multiple. The first noticeable
+  parameters that influence the result are the dimensions of the cars.
+  On the other hand, by inspecting the camera recording from the Astyx dataset,
+  it has been noticed that the cars in the dataset are not always right in
+  front of the ego vehicle. For a given distance,
+  the car could be anywhere in the surrounding of the ego vehicle.
+  So, the sensor generally has a perspective view of the car. This means that
+  more than one side of the car is exposed to the sensor.
+  This conclusion is highlighted by the results where we can observe that the
+  number of points expected from the model for an angle of $45^{\circ}$ is close
+  to the real data from the Astyx dataset for an angle around $0^{\circ}$  and
+  $1^{\circ}$.
+
+  As we start considering cars away ($15m$, $20m$ in this case) from the ego
+  vehicle, the real data from the Astyx dataset prove the model wrong. But this
+  is a bit expected because cars far from the ego vehicle can easily be
+  occluded or not reflect properly.
+  No occlusion cases or bad reflection has been considered in the 3D model;
+  hence it presents higher lidar point counts.
 
   \printbibliography
 \end{document}

@@ -13,13 +13,13 @@ help:
 	@echo
 
 build:
-	@xelatex ${SOURCE_FILE}.tex > /dev/null
+	@xelatex ${SOURCE_FILE}.tex
 	@bibtex ${SOURCE_FILE}.aux > /dev/null
 	@xelatex ${SOURCE_FILE} > /dev/null
 
 clean:
 	@echo "cleaning ..."
-	@find . -type f \( -name "*.log" -o -name "*.pdf" -o -name "*.bbl" -o -name \
+	@find . -type f \( -name "*.log" -o -name "report.pdf" -o -name "*.bbl" -o -name \
 										"*.blg" -o -name "*.aux" -o -name "*.out" -o -name "*.xml" \
 										-o -name "*.toc" \) -exec rm {} \;
 

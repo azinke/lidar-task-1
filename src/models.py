@@ -6,6 +6,8 @@ as a 3D box.
 """
 from typing import List
 import numpy as np
+import argparse
+from sys import exit
 
 
 class Car(object):
@@ -20,7 +22,7 @@ class Car(object):
         self.length: float = length
         self.width: float = width
         self.height: float = height
-        self.center: np.array = np.array([0, 0, 0])
+        self.center: np.array = np.array([0.0, 0.0, 0.0])
         self.corners: np.array = self._getBoxCoordinates()
 
     def _getRotationMatrix(self, angle: float, **kwargs) -> np.array:
@@ -40,9 +42,9 @@ class Car(object):
             angle: rotation angle in radian
         """
         return np.array([
-            [np.cos(angle), -np.sin(angle), 0],
-            [np.sin(angle), np.cos(angle), 0],
-            [0, 0, 1],
+            [np.cos(angle), -np.sin(angle), 0.0],
+            [np.sin(angle), np.cos(angle), 0.0],
+            [0.0, 0.0, 1.0],
         ])
 
     def _getTranslationVector(self, distance: float, **kwargs) -> np.array:
@@ -51,7 +53,7 @@ class Car(object):
         Assuming that the x-axis is orthogonal to the car, this function just
         translate the car about the x-axis.
         """
-        return np.array([distance, 0, 0])
+        return np.array([distance, 0.0, 0.0])
 
     @property
     def distance(self) -> float:
@@ -180,8 +182,8 @@ class LidarSensor(object):
         vres: vertical resolution of the sensor in degree
         hres: horizontal resolution of the sensor in degree
     """
-    VERTICAL_VIEW: float = 15       # degree
-    HORIZONTAL_VIEW: float = 360    # degree
+    VERTICAL_VIEW: float = 15.0       # degree
+    HORIZONTAL_VIEW: float = 360.0    # degree
 
     def __init__(self, srange: float, vres: float, hres: float,
                  **kwargs) -> None:
@@ -212,41 +214,97 @@ class LidarSensor(object):
             # If the car is over the range of the sensor
             # No lidar point must be expected
             return 0
-        CONVERSION_RATION: float = 180 / np.pi
+        CONVERSION_RATION: float = 180.0 / np.pi
         width, height = car.exposure
-        z_angle = 2 * np.arctan2(height, 2 * car.distance) * CONVERSION_RATION
-        if z_angle > self.vertical_view:
-            z_angle = self.vertical_view
-        y_angle = 2 * np.arctan2(width, 2 * car.distance) * CONVERSION_RATION
-        if y_angle > self.horizontal_view:
-            y_angle = self.horizontal_view
+        z_angle = min(
+            2.0 * np.arctan2(height, 2.0 * car.distance) * CONVERSION_RATION,
+            self.vertical_view,
+        )
+        y_angle = min(
+            2.0 * np.arctan2(width, 2.0 * car.distance) * CONVERSION_RATION,
+            self.horizontal_view,
+        )
         return int(np.floor(z_angle/self.vres) * np.floor(y_angle/self.hres))
 
 
 if __name__ == "__main__":
-    CAR_WIDTH: float = 1.2      # meter
-    CAR_HEIGHT: float = 1.75    # meter
-    CAR_LENGTH: float = 3.75    # meter
+    CAR_WIDTH: float = 1.762    # meter
+    CAR_HEIGHT: float = 1.59    # meter
+    CAR_LENGTH: float = 4.391   # meter
 
     LIDAR_RANGE: float = 100    # meters
-    LIDAR_VRES: float = 2       # degree
+    LIDAR_VRES: float = 2.0     # degree
     LIDAR_HRES: float = 0.2     # degree
 
-    distances: List[float] = [5, 10, 15, 20]    # meters
-    angles: List[float] = [0, 45, 90]           # degrees
+    # CLI parser
+    parser = argparse.ArgumentParser(
+        prog="lisim",
+        description="Lidar simulator on 3D model of a car",
+    )
+    parser.add_argument(
+        "--width",
+        type=float,
+        help="Width of the car",
+        default=CAR_WIDTH,
+    )
+    parser.add_argument(
+        "--length",
+        type=float,
+        help="Length of the car",
+        default=CAR_LENGTH,
+    )
+    parser.add_argument(
+        "--height",
+        type=float,
+        help="Height of the car",
+        default=CAR_HEIGHT,
+    )
+    parser.add_argument(
+        "-r", "--range",
+        type=float,
+        help="Range of the lidar sensor",
+        default=LIDAR_RANGE,
+    )
+    parser.add_argument(
+        "-hres", "--horizontal-resolution",
+        type=float,
+        help="Horizontal resolution of the lidar sensor",
+        default=LIDAR_HRES,
+    )
+    parser.add_argument(
+        "-vres", "--vertical-resolution",
+        type=float,
+        help="Vertical resolution of the lidar sensor",
+        default=LIDAR_VRES,
+    )
 
-    lidar = LidarSensor(LIDAR_RANGE, LIDAR_VRES, LIDAR_HRES)
+    args = parser.parse_args()
 
-    
+    for arg in [attr for attr in dir(args) if not ("_" in attr)]:
+        if getattr(args, arg) < 0:
+            print(
+                f"Arguments must be positive. Get {arg}: {getattr(args, arg)}"
+            )
+            exit(1)
+
+    distances: List[float] = [5.0, 10.0, 15.0, 20.0]    # meters
+    angles: List[float] = [0.0, 45.0, 90.0]             # degrees
+
+    lidar = LidarSensor(
+        args.range,
+        args.vertical_resolution,
+        args.horizontal_resolution,
+    )
+
     print(" ------------------------------------------------------ ")
     print("|    Distance(m)  |   Angle(deg)   |    Lidar points   |")
     for distance in distances:
         for angle in angles:
-            car: Car = Car(CAR_LENGTH, CAR_WIDTH, CAR_HEIGHT)
+            car: Car = Car(args.length, args.width, args.height)
             car.rotate(angle)
             car.move(distance)
             print("|-----------------|----------------|-------------------|")
-            print(f"|    {distance:5d}        |", end="")
-            print(f"   {angle:5d}        |    ", end="")
-            print(f"{lidar.estimatePointCloud(car):6d}         |")
+            print(f"|     {distance:5.1f}       |", end="")
+            print(f"     {angle:5.1f}      |     ", end="")
+            print(f"{lidar.estimatePointCloud(car):6d}        |")
     print(" ------------------------------------------------------ ")

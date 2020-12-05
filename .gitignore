@@ -2,8 +2,9 @@
 *.log
 *.aux
 *.toc
-*.pdf
+report*.pdf
 *.out
+report-blx.bib
 
 *.bbl
 *.blg

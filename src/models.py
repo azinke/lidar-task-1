@@ -296,6 +296,9 @@ if __name__ == "__main__":
         args.horizontal_resolution,
     )
 
+    print(f"Car (length: {args.length} m; width: {args.width} m; ", end="")
+    print(f"height: {args.height} m)", end="\n\n")
+
     print(" ------------------------------------------------------ ")
     print("|    Distance(m)  |   Angle(deg)   |    Lidar points   |")
     for distance in distances:

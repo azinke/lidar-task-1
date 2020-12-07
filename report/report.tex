@@ -340,7 +340,8 @@
 
   The size of the astyx dataset is not huge, yet it's not that easy to find
   a data entry from the ground truth matching specific criteria. So, a user
-  friendly API has been written to interact with the Astyx dataset.
+  friendly API has been written to interact with the Astyx dataset
+  \cite{astyx-library}.
   The source code has been heavily documented to breakdown the steps of
   processing the entries of the dataset.
 
@@ -381,7 +382,7 @@
       58 & 2 & 3.578 x 1.709 x 1.537 & 19.380 & 1.405 & 33 \\
       108 & 8 & 4.490 x 1.830 x 1.620 & 20.218 & 1.765 & 39 \\
       116 & 0 & 4.130 x 1.668 x 1.459 & 20.893 & 0.106 & 25 \\
-      117 & 0 & 3.794 x 1.698 x 1.399 & 20.255 & 0.106 & 14 \\
+      117 & 0 & 3.794 x 1.698 x 1.399 & 20.255 & 0.512 & 14 \\
       \hline
     \end{tabular}
     \label{table:astyx-lidar-data}
@@ -421,6 +422,15 @@
   occluded or not reflect properly.
   No occlusion cases or bad reflection has been considered in the 3D model;
   hence it presents higher lidar point counts.
+
+  \section{Links}
+
+  \begin{itemize}
+    \item Task 1: \url{https://gitlab.com/master-emm/radar-lidar/task-1}
+
+    \item Astyx dataset library:
+          \url{https://gitlab.com/master-emm/radar-lidar/astyx}
+  \end{itemize}
 
   \printbibliography
 \end{document}
